@@ -1,6 +1,8 @@
 import socket
 import logging
 
+from common.exceptions import SignalException
+
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -14,15 +16,16 @@ class Server:
         Dummy Server loop
 
         Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
+        communication with a client. After client with communication
         finishes, servers starts to accept new connections again
         """
-
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
-        while True:
-            client_sock = self.__accept_new_connection()
-            self.__handle_client_connection(client_sock)
+        try:
+            while True:
+                with self.__accept_new_connection() as client_sock:
+                    self.__handle_client_connection(client_sock)
+        except SignalException:
+            logging.info("Closing server socket")
+            self._server_socket.close()
 
     def __handle_client_connection(self, client_sock):
         """
@@ -41,6 +44,7 @@ class Server:
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
+            logging.info("Closing client socket")
             client_sock.close()
 
     def __accept_new_connection(self):

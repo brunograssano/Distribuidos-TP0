@@ -21,6 +21,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
+	stop chan bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -28,6 +29,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
+		stop:  make(chan bool, 1),
 	}
 	return client
 }
@@ -38,6 +40,7 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) createClientSocket() error {
 	conn, err := net.Dial("tcp", c.config.ServerAddress)
 	if err != nil {
+		// Exits the program
 		log.Fatalf(
 	        "action: connect | result: fail | client_id: %v | error: %v",
 			c.config.ID,
@@ -46,6 +49,15 @@ func (c *Client) createClientSocket() error {
 	}
 	c.conn = conn
 	return nil
+}
+
+func (c *Client) StopClient(){
+	if c.conn != nil {
+		log.Info("Closing client socket")
+		c.conn.Close()
+	}
+	c.stop <- true
+	close(c.stop)
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
@@ -57,6 +69,8 @@ loop:
 	// Send messages if the loopLapse threshold has not been surpassed
 	for timeout := time.After(c.config.LoopLapse); ; {
 		select {
+		case <- c.stop:
+			break loop
 		case <-timeout:
 	        log.Infof("action: timeout_detected | result: success | client_id: %v",
                 c.config.ID,
@@ -77,6 +91,7 @@ loop:
 		)
 		msg, err := bufio.NewReader(c.conn).ReadString('\n')
 		msgID++
+		log.Info("Closing client socket")
 		c.conn.Close()
 
 		if err != nil {

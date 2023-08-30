@@ -2,8 +2,15 @@
 
 from configparser import ConfigParser
 from common.server import Server
+from common.exceptions import SignalException
 import logging
 import os
+import signal
+
+
+def signal_handler(sig, frame):
+    logging.error(f"Received signal {sig}")
+    raise SignalException()
 
 
 def initialize_config():
@@ -35,6 +42,7 @@ def initialize_config():
 
 
 def main():
+    signal.signal(signal.SIGTERM, signal_handler)
     config_params = initialize_config()
     logging_level = config_params["logging_level"]
     port = config_params["port"]
