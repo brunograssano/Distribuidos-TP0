@@ -27,6 +27,17 @@ services:
     volumes:
       - ./client/config.yaml:/config.yaml
 
+  netcat:
+    container_name: netcat
+    image: netcat:latest
+    entrypoint: /run_netcat.sh
+    environment:
+      - PORT=12345
+      - SERVER=server
+    networks:
+      - testing_net
+    depends_on:
+      - server
 
 networks:
   testing_net:
