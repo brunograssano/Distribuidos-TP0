@@ -68,8 +68,55 @@ En esta primera parte del trabajo práctico se plantean una serie de ejercicios 
 ### Ejercicio N°1:
 Modificar la definición del DockerCompose para agregar un nuevo cliente al proyecto.
 
+#### Resolución
+La resolución de este ejercicio consiste en agregar al docker compose:
+
+```yaml
+  client2:
+    container_name: client2
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID=2
+      - CLI_LOG_LEVEL=DEBUG
+    networks:
+      - testing_net
+    depends_on:
+      - server
+```
+
+Commit `Ex 1: Add new client` [6340f765ba29f5fe0d24ff1623e8f460a7182b68](https://github.com/brunograssano/Distribuidos-TP0/commit/6340f765ba29f5fe0d24ff1623e8f460a7182b68)
+
+Se puede ejecutar con `make docker-compose-up`
+
 ### Ejercicio N°1.1:
 Definir un script (en el lenguaje deseado) que permita crear una definición de DockerCompose con una cantidad configurable de clientes.
+
+#### Resolución
+Para resolver este ejercicio se definió el script `create_compose_with_multiple_clients.py` que utiliza la biblioteca Jinja. Este script sigue la siguiente logica:
+1. Pregunta la cantidad de clientes que se quieren
+2. Carga el template de `templates/docker-compose-clients.yaml`. Este template hace que se vayan agregando los clientes
+3. Escribe el resultado en la carpeta `clients-docker-compose` indicando en el nombre la cantidad de clientes del compose. Por ejemplo `docker-compose-4-clients.yaml` tiene 4 clientes
+
+Para ejecutarlo:
+```
+$ python3 create_compose_with_multiple_clients.py
+```
+
+Ejemplo de ejecución
+```
+$ python3 create_compose_with_multiple_clients.py
+How many clients? 7
+Wrote docker compose with 7 clients to clients-docker-compose/docker-compose-7-clients.yaml
+```
+
+Para usar los compose generados:
+* Se puede reemplazar el archivo `docker-compose-dev.yaml` y usar `make docker-compose-up`
+* Se puede ejecutar `docker compose -f docker-compose-4-clients.yaml up -d --build` moviendolo a la base del repositorio. (para que encuentre los archivos de configuración en caso de tener los cambios del ejercicio 2)
+
+
+Commit `Ex 1.1: multiple clients` [91b1839212089cf9bcc04062f693953d99cc646c](https://github.com/brunograssano/Distribuidos-TP0/commit/91b1839212089cf9bcc04062f693953d99cc646c)
+
 
 ### Ejercicio N°2:
 Modificar el cliente y el servidor para lograr que realizar cambios en el archivo de configuración no requiera un nuevo build de las imágenes de Docker para que los mismos sean efectivos. La configuración a través del archivo correspondiente (`config.ini` y `config.yaml`, dependiendo de la aplicación) debe ser inyectada en el container y persistida afuera de la imagen (hint: `docker volumes`).
