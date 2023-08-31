@@ -93,7 +93,7 @@ Se puede ejecutar con `make docker-compose-up`
 Definir un script (en el lenguaje deseado) que permita crear una definición de DockerCompose con una cantidad configurable de clientes.
 
 #### Resolución
-Para resolver este ejercicio se definió el script `create_compose_with_multiple_clients.py` que utiliza la biblioteca Jinja. Este script sigue la siguiente logica:
+Para resolver este ejercicio se definió el script `create_compose_with_multiple_clients.py` que utiliza la biblioteca Jinja. Este script sigue la siguiente lógica:
 1. Pregunta la cantidad de clientes que se quieren
 2. Carga el template de `templates/docker-compose-clients.yaml`. Este template hace que se vayan agregando los clientes
 3. Escribe el resultado en la carpeta `clients-docker-compose` indicando en el nombre la cantidad de clientes del compose. Por ejemplo `docker-compose-4-clients.yaml` tiene 4 clientes
@@ -112,7 +112,7 @@ Wrote docker compose with 7 clients to clients-docker-compose/docker-compose-7-c
 
 Para usar los compose generados:
 * Se puede reemplazar el archivo `docker-compose-dev.yaml` y usar `make docker-compose-up`
-* Se puede ejecutar `docker compose -f docker-compose-4-clients.yaml up -d --build` moviendolo a la base del repositorio. (para que encuentre los archivos de configuración en caso de tener los cambios del ejercicio 2)
+* Se puede ejecutar `docker compose -f docker-compose-{cantidad de clientes}-clients.yaml up -d --build` moviendolo a la base del repositorio. (para que encuentre los archivos de configuración en caso de tener los cambios del ejercicio 2)
 
 
 Commit `Ex 1.1: multiple clients` [91b1839212089cf9bcc04062f693953d99cc646c](https://github.com/brunograssano/Distribuidos-TP0/commit/91b1839212089cf9bcc04062f693953d99cc646c)
@@ -121,11 +121,42 @@ Commit `Ex 1.1: multiple clients` [91b1839212089cf9bcc04062f693953d99cc646c](htt
 ### Ejercicio N°2:
 Modificar el cliente y el servidor para lograr que realizar cambios en el archivo de configuración no requiera un nuevo build de las imágenes de Docker para que los mismos sean efectivos. La configuración a través del archivo correspondiente (`config.ini` y `config.yaml`, dependiendo de la aplicación) debe ser inyectada en el container y persistida afuera de la imagen (hint: `docker volumes`).
 
+#### Resolución
+
+Para resolver este ejercicio se mapean los archivos de configuración dentro de `volumes` en el docker compose y se sacan estos archivos de las imágenes.
+- En el server se utiliza el `.dockerignore`
+- En el cliente se saca el `COPY`
+
+Commit `Ex2 move config to volume` [8f068ae06e472054f9e2a11d537d02fb8b59bea0](https://github.com/brunograssano/Distribuidos-TP0/commit/8f068ae06e472054f9e2a11d537d02fb8b59bea0) - Fix del `.dockerignore` [e5d5c18d1c6040c0ab3aefa6580940430efe96b2](https://github.com/brunograssano/Distribuidos-TP0/commit/e5d5c18d1c6040c0ab3aefa6580940430efe96b2)
+
+Se puede ejecutar con `make docker-compose-up`. Al cambiar las configuraciones se hace build con el cache.
+
 ### Ejercicio N°3:
 Crear un script que permita verificar el correcto funcionamiento del servidor utilizando el comando `netcat` para interactuar con el mismo. Dado que el servidor es un EchoServer, se debe enviar un mensaje al servidor y esperar recibir el mismo mensaje enviado. Netcat no debe ser instalado en la máquina _host_ y no se puede exponer puertos del servidor para realizar la comunicación (hint: `docker network`).
 
+#### Resolución
+
+Para resolver este ejercicio:
+* Se crea el script `netcat/run_netcat.sh` que envía un mensaje al servidor y compara el resultado. Dependiendo de este imprime un mensaje. Para funcionar el script requiere de las variables de entorno `$SERVER` y `$PORT`. 
+* Se hace el Dockerfile para tener instalado `netcat` y el script `netcat/Dockerfile`
+* Se agrega en el docker compose el servicio para ejecutar el script. Lo importante es que se utilice la misma red que el servidor y que se le pasen las variables de entorno. 
+
+Commit `Ex3: test server with netcat` [8f068ae06e472054f9e2a11d537d02fb8b59bea0](https://github.com/brunograssano/Distribuidos-TP0/commit/10a2c0e79ffdb62db0cec2875adb3b822ec2bdad)
+
+Se puede ejecutar con `make docker-compose-up`
+
 ### Ejercicio N°4:
 Modificar servidor y cliente para que ambos sistemas terminen de forma _graceful_ al recibir la signal SIGTERM. Terminar la aplicación de forma _graceful_ implica que todos los _file descriptors_ (entre los que se encuentran archivos, sockets, threads y procesos) deben cerrarse correctamente antes que el thread de la aplicación principal muera. Loguear mensajes en el cierre de cada recurso (hint: Verificar que hace el flag `-t` utilizado en el comando `docker compose down`).
+
+#### Resolución
+
+Para resolver el ejercicio se agregan los handlers en ambas aplicaciones.
+* En el servidor se lanza una excepcion que es atrapada y cierra los recursos
+* En el cliente se lanza una `goroutine` que escucha por la señal. Al recibirla, cierra el socket, liberando al cliente en caso de estar escuchando, y le envía un mensaje para que termine su loop de ejecución.
+
+Commit `Ex4 handle SIGTERM in server & client` [668ae4e4046bf9b06b495ab4f5cdbb4be5d174ac](https://github.com/brunograssano/Distribuidos-TP0/commit/668ae4e4046bf9b06b495ab4f5cdbb4be5d174ac)
+
+Se puede ejecutar con `make docker-compose-up` y probar el cierre con `docker compose -f docker-compose-dev.yaml stop -t 3`
 
 ## Parte 2: Repaso de Comunicaciones
 
