@@ -2,6 +2,8 @@ import socket
 import logging
 
 from common.exceptions import SignalException
+from common.client_handler import ClientHandler
+from common.lotto_agent import LottoManager
 
 
 class Server:
@@ -22,30 +24,11 @@ class Server:
         try:
             while True:
                 with self.__accept_new_connection() as client_sock:
-                    self.__handle_client_connection(client_sock)
+                    lotto_manager = LottoManager(ClientHandler(client_sock))
+                    lotto_manager.handle_lotto()
         except SignalException:
-            logging.info("Closing server socket")
+            logging.info("action: closing_socket | Closing server socket")
             self._server_socket.close()
-
-    def __handle_client_connection(self, client_sock):
-        """
-        Read message from a specific client socket and closes the socket
-
-        If a problem arises in the communication with the client, the
-        client socket will also be closed
-        """
-        try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
-            addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
-        except OSError as e:
-            logging.error("action: receive_message | result: fail | error: {e}")
-        finally:
-            logging.info("Closing client socket")
-            client_sock.close()
 
     def __accept_new_connection(self):
         """
