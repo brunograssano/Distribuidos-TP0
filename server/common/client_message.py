@@ -3,6 +3,9 @@ from common.utils import Bet
 """ Bet message type identifier """
 BETS = "BET"
 
+""" Finish message type identifier """
+FINISH = "FIN"
+
 
 class ClientMessage:
     """ A client message representation """
@@ -25,3 +28,6 @@ class ClientMessage:
                 number = splitted[7 + i * 5]
                 self.bets.append(
                     Bet(lotto_agent, name, surname, document, birthdate, number))
+
+    def finished(self) -> bool:
+        return self.type == FINISH

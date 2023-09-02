@@ -1,16 +1,21 @@
 package common
 
-import log "github.com/sirupsen/logrus"
+import (
+	"bufio"
+	log "github.com/sirupsen/logrus"
+	"os"
+	"strings"
+)
+
+const FieldsPerLine = 5
+const CommaSeparator = ","
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
 	ID            string
 	ServerAddress string
-	Name          string
-	Surname       string
-	Document      string
-	BirthDate     string
-	Number        string
+	BetsFile      string
+	BatchSize     uint
 }
 
 // Client Entity that encapsulates how
@@ -39,18 +44,71 @@ func (c *Client) StopClient() {
 	close(c.stop)
 }
 
-// StartClientLoop Send bet message to the server and wait for confirmation.
+func (c *Client) closeBetsFile(f *os.File) {
+	log.Infof("action: closing_file | Closing bets file")
+	f.Close()
+}
+
+// StartClientLoop Send bet messages to the server and wait for confirmation.
 // In case of error it closes the connection and finishes
 func (c *Client) StartClientLoop() {
 
 	c.serializer = NewSerializer(c.config.ID, c.config.ServerAddress)
-	err := c.serializer.SendBet(c.config.Name, c.config.Surname, c.config.Document, c.config.BirthDate, c.config.Number)
+	defer c.serializer.Close()
+	f, err := os.Open(c.config.BetsFile)
 	if err != nil {
-		c.serializer.Close()
+		log.Errorf("action: open_file | result: fail | file_name: %v | error: %v", c.config.BetsFile, err)
 		return
 	}
-	c.serializer.RecvResponse()
-	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", c.config.Document, c.config.Number)
-	c.serializer.Close()
+	defer c.closeBetsFile(f)
+	scanner := bufio.NewScanner(f)
+	betsBuilder := strings.Builder{}
+	inBatch := uint(0)
 
+	for scanner.Scan() {
+		select {
+		case <-c.stop:
+			return
+		default:
+		}
+		line := scanner.Text()
+		if inBatch < c.config.BatchSize {
+			if len(strings.Split(line, CommaSeparator)) != FieldsPerLine {
+				log.Errorf("action: read_file | result: fail | file_name: %v | error: wrong format, skipping line", c.config.BetsFile)
+				continue
+			}
+			betsBuilder.WriteString(line)
+			betsBuilder.WriteString(CommaSeparator)
+			inBatch++
+			continue
+		}
+
+		if c.sendBatch(inBatch, betsBuilder) != nil {
+			return
+		}
+		betsBuilder.Reset()
+		inBatch = 0
+	}
+
+	if inBatch != 0 && c.sendBatch(inBatch, betsBuilder) != nil {
+		return
+	}
+	c.serializer.SendFinish()
+	if err := scanner.Err(); err != nil {
+		log.Errorf("action: read_file | result: fail | file_name: %v | error: %v", c.config.BetsFile, err)
+	}
+
+}
+
+func (c *Client) sendBatch(inBatch uint, betsBuilder strings.Builder) error {
+	err := c.serializer.SendBets(inBatch, betsBuilder.String())
+	if err != nil {
+		return err
+	}
+	_, err = c.serializer.RecvResponse()
+	if err != nil {
+		return err
+	}
+	log.Infof("action: apuestas_batch_enviadas | result: success")
+	return nil
 }

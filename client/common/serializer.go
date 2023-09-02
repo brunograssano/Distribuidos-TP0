@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 // Serializer Middleware between business logic and communication logic.
@@ -22,15 +23,24 @@ func NewSerializer(ID string, ServerAddress string) *Serializer {
 	return serializer
 }
 
-// SendBet Sends a single bet to the server.
-func (s *Serializer) SendBet(Name string, Surname string, Document string, BirthDate string, Number string) error {
-	betMessage := fmt.Sprintf("BET,%d,%s,%s,%s,%s,%s,%s", 1, s.ID, Name, Surname, Document, BirthDate, Number)
-	dataToSend := []byte(betMessage)
+// SendBet Sends a bet message to the server.
+func (s *Serializer) SendBets(betsInBatch uint, bets string) error {
+	return s.send(fmt.Sprintf("BET,%d,%s,%s", betsInBatch, s.ID, strings.TrimSuffix(bets, ",")))
+}
+
+// SendFinish Sends a finish message to the server
+func (s *Serializer) SendFinish() error {
+	return s.send(fmt.Sprintf("FIN,%s", s.ID))
+}
+
+// send sends a string message to the server together with its size
+func (s *Serializer) send(message string) error {
+	dataToSend := []byte(message)
 	bytesToSendVal := len(dataToSend)
 	log.Infof("action: send_message | client_id: %v | msg size: %v | Sending message: %v",
 		s.ID,
 		bytesToSendVal,
-		betMessage,
+		message,
 	)
 	bytesToSendArray := make([]byte, 4)
 	binary.BigEndian.PutUint32(bytesToSendArray, uint32(bytesToSendVal))

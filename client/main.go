@@ -15,6 +15,8 @@ import (
 	"syscall"
 )
 
+const DefaultBetsPerBatch = 100
+
 // InitConfig Function that uses viper library to parse configuration parameters.
 // Viper is configured to read variables from both environment variables and the
 // config file ./config.yaml. Environment variables takes precedence over parameters
@@ -35,11 +37,8 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("id")
 	v.BindEnv("server", "address")
 	v.BindEnv("log", "level")
-	v.BindEnv("name")
-	v.BindEnv("surname")
-	v.BindEnv("document")
-	v.BindEnv("birthdate")
-	v.BindEnv("number")
+	v.BindEnv("bets", "file")
+	v.BindEnv("bets", "batch_size")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -74,17 +73,12 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	logrus.Infof("action: config | result: success | client_id: %s | server_address: %s | log_level: %s",
+	logrus.Infof("action: config | result: success | client_id: %s | server_address: %s | log_level: %s | file: %s | batch_size: %v",
 		v.GetString("id"),
 		v.GetString("server.address"),
 		v.GetString("log.level"),
-	)
-	logrus.Infof("name: %s | surname: %s | doument: %s | birthdate: %s | number: %s ",
-		v.GetString("name"),
-		v.GetString("surname"),
-		v.GetString("document"),
-		v.GetString("birthdate"),
-		v.GetString("number"),
+		v.GetString("bets.file"),
+		v.GetUint("bets.batch_size"),
 	)
 }
 
@@ -111,14 +105,15 @@ func main() {
 	// Print program config with debugging purposes
 	PrintConfig(v)
 
+	BatchSize := v.GetUint("bets.batch_size")
+	if BatchSize == 0 {
+		BatchSize = DefaultBetsPerBatch
+	}
 	clientConfig := common.ClientConfig{
 		ServerAddress: v.GetString("server.address"),
 		ID:            v.GetString("id"),
-		Name:          v.GetString("name"),
-		Surname:       v.GetString("surname"),
-		Document:      v.GetString("document"),
-		BirthDate:     v.GetString("birthdate"),
-		Number:        v.GetString("number"),
+		BetsFile:      v.GetString("bets.file"),
+		BatchSize:     BatchSize,
 	}
 
 	client := common.NewClient(clientConfig)

@@ -14,13 +14,16 @@ class LottoManager:
         self.client = client
 
     def handle_lotto(self):
-        """ Handles the lotto logic depending on the message type (only store_bets for now)"""
+        """ Handles the lotto logic depending on the message type """
         try:
-            message = self.client.recv()
-            store_bets(message.bets)
-            logging.info(
-                f"action: apuesta_almacenada | result: success | dni: {message.bets[0].document} | numero: {message.bets[0].number}")
-            self.client.send(ok_message())
+            while True:
+                message = self.client.recv()
+                if message.finished():
+                    return
+                store_bets(message.bets)
+                logging.info(
+                    f"action: apuestas_almacenadas | result: success")
+                self.client.send(ok_message())
         except (SocketConnectionBroken, OSError) as e:
             logging.error(
                 f"action: receive_message | result: fail | error: {e}")

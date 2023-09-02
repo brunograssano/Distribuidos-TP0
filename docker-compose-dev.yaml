@@ -7,7 +7,7 @@ services:
     entrypoint: python3 /main.py
     environment:
       - PYTHONUNBUFFERED=1
-      - LOGGING_LEVEL=DEBUG
+      - LOGGING_LEVEL=INFO
     networks:
       - testing_net
     volumes:
@@ -19,18 +19,16 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=1
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NAME=Santiago Lionel
-      - CLI_SURNAME=Lorca
-      - CLI_DOCUMENT=30904465
-      - CLI_BIRTHDATE=1999-03-17
-      - CLI_NUMBER=7574
+      - CLI_LOG_LEVEL=INFO
+      - CLI_BETS_FILE=agency-1.csv
+      - CLI_BETS_BATCH_SIZE=300
     networks:
       - testing_net
     depends_on:
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-1.csv:/agency-1.csv
 
   client2:
     container_name: client2
@@ -38,18 +36,16 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=2
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NAME=Agustin
-      - CLI_SURNAME=Zambrano
-      - CLI_DOCUMENT=20563073
-      - CLI_BIRTHDATE=2000-05-23
-      - CLI_NUMBER=5368
+      - CLI_LOG_LEVEL=INFO
+      - CLI_BETS_FILE=agency-2.csv
+      - CLI_BETS_BATCH_SIZE=200
     networks:
       - testing_net
     depends_on:
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-2.csv:/agency-2.csv
 
   client3:
     container_name: client3
@@ -57,18 +53,16 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=3
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NAME=Ana
-      - CLI_SURNAME=Mancuso
-      - CLI_DOCUMENT=23793663
-      - CLI_BIRTHDATE=1989-01-10
-      - CLI_NUMBER=9023
+      - CLI_LOG_LEVEL=INFO
+      - CLI_BETS_FILE=agency-3.csv
+      - CLI_BETS_BATCH_SIZE=100
     networks:
       - testing_net
     depends_on:
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-3.csv:/agency-3.csv
 
   client4:
     container_name: client4
@@ -76,18 +70,16 @@ services:
     entrypoint: /client
     environment:
       - CLI_ID=4
-      - CLI_LOG_LEVEL=DEBUG
-      - CLI_NAME=Sol
-      - CLI_SURNAME=Caseres
-      - CLI_DOCUMENT=40230523
-      - CLI_BIRTHDATE=2003-09-02
-      - CLI_NUMBER=3258
+      - CLI_LOG_LEVEL=INFO
+      - CLI_BETS_FILE=agency-4.csv
+      - CLI_BETS_BATCH_SIZE=50
     networks:
       - testing_net
     depends_on:
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-4.csv:/agency-4.csv
 
   client5:
     container_name: client5
@@ -96,17 +88,15 @@ services:
     environment:
       - CLI_ID=5
       - CLI_LOG_LEVEL=DEBUG
-      - CLI_NAME=Alan
-      - CLI_SURNAME=Santana
-      - CLI_DOCUMENT=36893032
-      - CLI_BIRTHDATE=1995-10-25
-      - CLI_NUMBER=534
+      - CLI_BETS_FILE=agency-5.csv
+      - CLI_BETS_BATCH_SIZE=30
     networks:
       - testing_net
     depends_on:
       - server
     volumes:
       - ./client/config.yaml:/config.yaml
+      - ./.data/agency-5.csv:/agency-5.csv
 
 networks:
   testing_net:
