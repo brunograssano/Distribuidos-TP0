@@ -10,15 +10,17 @@ import (
 // Serializer Middleware between business logic and communication logic.
 // Serializes and deserializes messages sent through the socket
 type Serializer struct {
-	conn *ClientStream
-	ID   string
+	conn          *ClientStream
+	ID            string
+	serverAddress string
 }
 
 // NewSerializer Creates a new serializer. The connection will be managed by the serializer
 func NewSerializer(ID string, ServerAddress string) *Serializer {
 	serializer := &Serializer{
-		conn: NewClientStream(ID, ServerAddress),
-		ID:   ID,
+		conn:          NewClientStream(ID, ServerAddress),
+		ID:            ID,
+		serverAddress: ServerAddress,
 	}
 	return serializer
 }
@@ -31,6 +33,16 @@ func (s *Serializer) SendBets(betsInBatch uint, bets string) error {
 // SendFinish Sends a finish message to the server
 func (s *Serializer) SendFinish() error {
 	return s.send(fmt.Sprintf("FIN,%s", s.ID))
+}
+
+// AskForWinners Sends a message for the server asking for the winners of this lotto agent
+func (s *Serializer) AskForWinners() error {
+	return s.send(fmt.Sprintf("WIN,%s", s.ID))
+}
+
+// Connect Connects to the server again
+func (s *Serializer) Connect() {
+	s.conn = NewClientStream(s.ID, s.serverAddress)
 }
 
 // send sends a string message to the server together with its size
@@ -53,10 +65,10 @@ func (s *Serializer) send(message string) error {
 }
 
 // RecvResponse Receives a message from the server
-func (s *Serializer) RecvResponse() (string, error) {
+func (s *Serializer) RecvResponse() (*ServerResponse, error) {
 	messageSizeBytes, err := s.conn.Recv(4)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	messageSize := int(binary.BigEndian.Uint32(messageSizeBytes))
 	log.Infof("action: receive_message | result: success | client_id: %v | expected msg size: %v",
@@ -65,14 +77,14 @@ func (s *Serializer) RecvResponse() (string, error) {
 	)
 	message, err := s.conn.Recv(messageSize)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	decodedMsg := string(message)
 	log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
 		s.ID,
 		decodedMsg,
 	)
-	return decodedMsg, err
+	return NewServerResponse(decodedMsg)
 }
 
 // Close Closes the connection to the server

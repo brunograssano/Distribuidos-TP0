@@ -5,10 +5,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"strings"
+	"time"
 )
 
 const FieldsPerLine = 5
 const CommaSeparator = ","
+const MaxWaitingTimeInSeconds = 900 // 15 mins
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -55,10 +57,55 @@ func (c *Client) StartClientLoop() {
 
 	c.serializer = NewSerializer(c.config.ID, c.config.ServerAddress)
 	defer c.serializer.Close()
+
+	stop, err := c.readAndSendBets()
+	if stop || err != nil {
+		return
+	}
+
+	c.getWinnersOfLotto()
+}
+
+// getWinnersOfLotto Asks the server for the winners of the lottery
+// If the server does not have the results it asks later following an exponential backoff
+func (c *Client) getWinnersOfLotto() {
+	for secondsUntilAskingForWinnersAgain := 1; ; secondsUntilAskingForWinnersAgain *= 2 {
+		select {
+		case <-c.stop:
+			return
+		default:
+		}
+		err := c.serializer.AskForWinners()
+		if err != nil {
+			return
+		}
+		msg, err := c.serializer.RecvResponse()
+		if err != nil {
+			return
+		}
+		if msg.WantsToAskLater() {
+			c.serializer.Close()
+			log.Infof("action: consulta_ganadores | Asking again in %v seconds", secondsUntilAskingForWinnersAgain)
+			time.Sleep(time.Duration(secondsUntilAskingForWinnersAgain) * time.Second)
+			if secondsUntilAskingForWinnersAgain > MaxWaitingTimeInSeconds {
+				secondsUntilAskingForWinnersAgain = 1
+			}
+			c.serializer.Connect()
+			continue
+		}
+
+		log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(msg.Winners))
+		log.Infof("action: consulta_ganadores | documentos_ganadores: %v", msg.Winners)
+		break
+	}
+}
+
+// readAndSendBets Sends the server the bets read from the file
+func (c *Client) readAndSendBets() (bool, error) {
 	f, err := os.Open(c.config.BetsFile)
 	if err != nil {
 		log.Errorf("action: open_file | result: fail | file_name: %v | error: %v", c.config.BetsFile, err)
-		return
+		return false, err
 	}
 	defer c.closeBetsFile(f)
 	scanner := bufio.NewScanner(f)
@@ -68,7 +115,7 @@ func (c *Client) StartClientLoop() {
 	for scanner.Scan() {
 		select {
 		case <-c.stop:
-			return
+			return true, nil
 		default:
 		}
 		line := scanner.Text()
@@ -82,24 +129,27 @@ func (c *Client) StartClientLoop() {
 			inBatch++
 			continue
 		}
-
-		if c.sendBatch(inBatch, betsBuilder) != nil {
-			return
+		err = c.sendBatch(inBatch, betsBuilder)
+		if err != nil {
+			return false, err
 		}
 		betsBuilder.Reset()
 		inBatch = 0
 	}
-
-	if inBatch != 0 && c.sendBatch(inBatch, betsBuilder) != nil {
-		return
-	}
-	c.serializer.SendFinish()
 	if err := scanner.Err(); err != nil {
 		log.Errorf("action: read_file | result: fail | file_name: %v | error: %v", c.config.BetsFile, err)
+		return false, err
 	}
 
+	err = c.sendBatch(inBatch, betsBuilder)
+	if inBatch != 0 && err != nil {
+		return false, err
+	}
+	err = c.serializer.SendFinish()
+	return false, err
 }
 
+// sendBatch Sends a batch of bets to the server and waits for the OK response
 func (c *Client) sendBatch(inBatch uint, betsBuilder strings.Builder) error {
 	err := c.serializer.SendBets(inBatch, betsBuilder.String())
 	if err != nil {

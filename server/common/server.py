@@ -7,11 +7,12 @@ from common.lotto_agent import LottoManager
 
 
 class Server:
-    def __init__(self, port, listen_backlog):
+    def __init__(self, port, listen_backlog, total_lotteries):
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
+        self.finished_lotteries = [False] * total_lotteries
 
     def run(self):
         """
@@ -24,7 +25,9 @@ class Server:
         try:
             while True:
                 with self.__accept_new_connection() as client_sock:
-                    lotto_manager = LottoManager(ClientHandler(client_sock))
+                    client_handler = ClientHandler(client_sock)
+                    lotto_manager = LottoManager(
+                        client_handler, self.finished_lotteries)
                     lotto_manager.handle_lotto()
         except SignalException:
             logging.info("action: closing_socket | Closing server socket")
