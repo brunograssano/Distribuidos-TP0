@@ -181,9 +181,30 @@ Se deberá implementar un módulo de comunicación entre el cliente y el servido
 * Correcta separación de responsabilidades entre modelo de dominio y capa de comunicación.
 * Correcto empleo de sockets, incluyendo manejo de errores y evitando los fenómenos conocidos como [_short read y short write_](https://cs61.seas.harvard.edu/site/2018/FileDescriptors/).
 
+#### Resolución
+Debido a que este y los próximos ejercicios tratan sobre la misma base del módulo de comunicación, el desarrollo de esta parte se fue haciendo teniendo en cuenta que se iba a requerir que sea genérico. Más adelante se va a encontrar la sección en donde se analiza en detalle. 
+
+Dejo mención en esta parte que para la ejecución son necesarias las variables de entorno: `CLI_NAME`, `CLI_SURNAME`,`CLI_DOCUMENT`, `CLI_BIRTHDATE` y `CLI_NUMBER`. Estas son pasadas a través del docker compose.
+
+Se puede ejecutar con `make docker-compose-up`
+
+Commit `Ex5 lotto business logic and coms` [9cf34cfbdf0645bb2d249904ca8031149fc4366b](https://github.com/brunograssano/Distribuidos-TP0/commit/9cf34cfbdf0645bb2d249904ca8031149fc4366b)
+
 ### Ejercicio N°6:
 Modificar los clientes para que envíen varias apuestas a la vez (modalidad conocida como procesamiento por _chunks_ o _batchs_). La información de cada agencia será simulada por la ingesta de su archivo numerado correspondiente, provisto por la cátedra dentro de `.data/datasets.zip`.
 Los _batchs_ permiten que el cliente registre varias apuestas en una misma consulta, acortando tiempos de transmisión y procesamiento. La cantidad de apuestas dentro de cada _batch_ debe ser configurable. Realizar una implementación genérica, pero elegir un valor por defecto de modo tal que los paquetes no excedan los 8kB. El servidor, por otro lado, deberá responder con éxito solamente si todas las apuestas del _batch_ fueron procesadas correctamente.
+
+#### Resolución
+
+Cuestiones a tener en cuenta:
+* Se eliminan las variables de entorno `CLI_NAME`, `CLI_SURNAME`,`CLI_DOCUMENT`, `CLI_BIRTHDATE` y `CLI_NUMBER`
+* Se agrega la variable de entorno `CLI_BETS_BATCH_SIZE`. Por defecto, toma de valor 100 si no se completa para tener paquetes inferiores a 8kB. En el ejercicio se completa por el docker compose.
+* Se agrega la variable de entorno `CLI_BETS_FILE` para indicar de que archivo se leen las apuestas. Este archivo lo agrego a través de un volumen, por ejemplo `./.data/agency-3.csv:/agency-3.csv`
+* Para ejecutar el ejercicio es necesario extraer los archivos de `.data/datasets.zip` en `.data`.
+
+Se puede ejecutar con `make docker-compose-up`
+
+Commit `Ex6 handle bets in batch request` [ed91cd3482b0537785cf31a21f6647b45cf4352f](https://github.com/brunograssano/Distribuidos-TP0/commit/ed91cd3482b0537785cf31a21f6647b45cf4352f)
 
 ### Ejercicio N°7:
 Modificar los clientes para que notifiquen al servidor al finalizar con el envío de todas las apuestas y así proceder con el sorteo.
@@ -194,6 +215,18 @@ El servidor deberá esperar la notificación de las 5 agencias para considerar q
 Luego de este evento, podrá verificar cada apuesta con las funciones `load_bets(...)` y `has_won(...)` y retornar los DNI de los ganadores de la agencia en cuestión. Antes del sorteo, no podrá responder consultas por la lista de ganadores.
 Las funciones `load_bets(...)` y `has_won(...)` son provistas por la cátedra y no podrán ser modificadas por el alumno.
 
+#### Resolución
+
+En este ejercicio se expande la lógica del caso de uso
+
+Se puede ejecutar con `make docker-compose-up`
+
+Commit `Ex7 Ask for lotto winners` [9943ad978bec75ef181dc9b7f60574833df34f22](https://github.com/brunograssano/Distribuidos-TP0/commit/9943ad978bec75ef181dc9b7f60574833df34f22)
+
+### Protocolo de comunicación
+
+TODO explicar
+
 ## Parte 3: Repaso de Concurrencia
 
 ### Ejercicio N°8:
@@ -201,6 +234,18 @@ Modificar el servidor para que permita aceptar conexiones y procesar mensajes en
 En este ejercicio es importante considerar los mecanismos de sincronización a utilizar para el correcto funcionamiento de la persistencia.
 
 En caso de que el alumno implemente el servidor Python utilizando _multithreading_,  deberán tenerse en cuenta las [limitaciones propias del lenguaje](https://wiki.python.org/moin/GlobalInterpreterLock).
+
+#### Resolución
+
+Para que el servidor permita aceptar conexiones y procesar mensajes en paralelo, se optó por utilizar threads que manejen los clientes a medida que se van conectando. Esto implica agregar algunos mecanismos de sincronización:
+* El acceso a las funciones de `load_bets` y `store_bets` es protegido con un lock debido a que la implementación provista no es thread-safe.
+* El acceso a la lista que indica que loterías finalizaron se protege con un lock
+
+Se decidió realizar el ejercicio con threads y no con procesos debido a que mayoritariamente el servidor está haciendo operaciones de I/O.
+
+Se puede ejecutar con `make docker-compose-up`
+
+Commit `Ex8 handle clients concurrently` [ee607fa77b2fa47ea2c26576ef2faf0e4464d2cf](https://github.com/brunograssano/Distribuidos-TP0/commit/ee607fa77b2fa47ea2c26576ef2faf0e4464d2cf)
 
 ## Consideraciones Generales
 Se espera que los alumnos realicen un _fork_ del presente repositorio para el desarrollo de los ejercicios.
