@@ -1,5 +1,6 @@
 import socket
 import logging
+import threading
 
 from common.exceptions import SignalException
 from common.client_handler import ClientHandler
@@ -13,6 +14,8 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
         self.finished_lotteries = [False] * total_lotteries
+        self.finished_lock = threading.Lock()
+        self.bets_lock = threading.Lock()
 
     def run(self):
         """
@@ -22,14 +25,31 @@ class Server:
         communication with a client. After client with communication
         finishes, servers starts to accept new connections again
         """
+        lottos: list[LottoManager] = []
+        finished_lottos: list[LottoManager] = []
         try:
             while True:
-                with self.__accept_new_connection() as client_sock:
-                    client_handler = ClientHandler(client_sock)
-                    lotto_manager = LottoManager(
-                        client_handler, self.finished_lotteries)
-                    lotto_manager.handle_lotto()
+                client_sock = self.__accept_new_connection()
+                client_handler = ClientHandler(client_sock)
+                lotto_manager = LottoManager(
+                    client_handler, self.finished_lotteries, self.finished_lock, self.bets_lock)
+                lotto_manager.start()
+                lottos.append(lotto_manager)
+                for lotto in lottos:
+                    if not lotto.is_alive():
+                        finished_lottos.append(lotto)
+                for lotto in finished_lottos:
+                    logging.info(
+                        "action: joining_thread | A lotto thread finished, joining and cleaning")
+                    lotto.join()
+                    lottos.remove(lotto)
+                finished_lottos.clear()
         except SignalException:
+            for lotto in lottos:
+                logging.info(
+                    "action: joining_thread | Signaling a lotto thread to stop")
+                lotto.stop()
+                lotto.join()
             logging.info("action: closing_socket | Closing server socket")
             self._server_socket.close()
 
