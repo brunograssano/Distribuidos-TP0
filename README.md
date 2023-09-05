@@ -225,7 +225,34 @@ Commit `Ex7 Ask for lotto winners` [9943ad978bec75ef181dc9b7f60574833df34f22](ht
 
 ### Protocolo de comunicación
 
-TODO explicar
+La comunicación entre el cliente y el servidor se realiza partiendo de que se envía primero un mensaje que contiene la cantidad de bytes a enviar, y después el mensaje con los datos.
+* El mensaje con la cantidad de bytes a enviar es un entero de 4 bytes encodeado en formato big endian
+* El mensaje con los datos a armar se va componiendo de un string que es encodeado a bytes con formato `utf-8`. Este string se va armando con un formato estilo `csv` donde los campos se van separando por comas y se identifica el tipo de mensaje de acuerdo al identificador de la primera parte (Por ejemplo `ID,DATO1,DATO2`).
+
+Los mensajes que se manejan del cliente al servidor son:
+* `BET,Cantidad de apuestas,ID de la agencia,Cantidad de apuestas * [Nombre,Apellido,Documento,Nacimiento,Numero]` para el envío de las apuestas. Por ejemplo, `BET,2,5,Federico Nahuel,Mancuso,30206889,1997-07-27,5009,Kevin Alejandro,Sorbera,35863340,1997-09-20,1074` (A partir del ej 5 en adelante)
+* `FIN,ID de la agencia` para indicar al servidor que ya no se van a enviar más apuestas. Por ejemplo `FIN,5` (A partir del ej 6 en adelante)
+* `WIN,ID de la agencia` para preguntar al servidor por los ganadores de su agencia. Por ejemplo `WIN,5` (A partir del ej 7 en adelante)
+
+Del servidor al cliente:
+* `OK` para indicar que una operación del cliente se realizó exitosamente
+* `LATER` para indicar que el cliente debe esperar para obtener los resultados (A partir del ej 7 en adelante)
+* `WIN,Cantidad de ganadores,Cantidad de ganadores * [Documento de ganador]` para enviarle al cliente los ganadores de su agencia. Por ejemplo `WIN,3,24807259,24807259,24807259` (A partir del ej 7 en adelante)
+
+En la siguiente imagen podemos ver un ejemplo de como transcurre la comunicacion entre las dos partes
+![Comunicacion cliente servidor](docs/flujo-comunicacion.png)
+
+* Primero se envían las apuestas y se va respondiendo con OK.
+* El cliente al finalizar avisa al servidor y envía un mensaje pidiendo los ganadores
+* El servidor puede responder con los ganadores o decirle al servidor que intente más tarde si faltan loterías que procesar.
+
+El servidor tiene el siguiente modelo para separar las responsabilidades
+![Modelo servidor](docs/modelo-server.png)
+*Se representa a archivos que solo tienen funciones como una interfaz*
+
+
+TODO agregar cliente
+
 
 ## Parte 3: Repaso de Concurrencia
 
