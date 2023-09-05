@@ -19,11 +19,8 @@ class Server:
 
     def run(self):
         """
-        Dummy Server loop
-
         Server that accept a new connections and establishes a
-        communication with a client. After client with communication
-        finishes, servers starts to accept new connections again
+        communication with a client.
         """
         lottos: list[LottoManager] = []
         finished_lottos: list[LottoManager] = []
