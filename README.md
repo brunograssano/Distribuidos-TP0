@@ -142,7 +142,7 @@ Para resolver este ejercicio:
 * Se agrega en el docker compose el servicio para ejecutar el script. Lo importante es que se utilice la misma red que el servidor y que se le pasen las variables de entorno. 
 
 Se puede ejecutar con `make docker-compose-up`
-
+* Asegurarse que las lineas de terminación de `netcat/run_netcat.sh` sean del formato LF. Si esta en CRLF no va a encontrar el archivo
 * Commit `Ex3: test server with netcat` [8f068ae06e472054f9e2a11d537d02fb8b59bea0](https://github.com/brunograssano/Distribuidos-TP0/commit/10a2c0e79ffdb62db0cec2875adb3b822ec2bdad)
 
 ### Ejercicio N°4:
@@ -219,7 +219,9 @@ Las funciones `load_bets(...)` y `has_won(...)` son provistas por la cátedra y 
 
 #### Resolución
 
-En este ejercicio se expande la lógica del caso de uso agregando más mensajes
+En este ejercicio se expande la lógica del caso de uso agregando más mensajes.
+* Se agrega la variable de entorno en el servidor `TOTAL_LOTTERIES` que tiene valor por defecto de 5
+* **Para ejecutar el ejercicio es necesario extraer los archivos** de `.data/datasets.zip` en `.data` .
 
 Se puede ejecutar con `make docker-compose-up`
 
@@ -293,6 +295,7 @@ Dado que en el caso de uso hay puntos comunes que involucran a todos los cliente
 *Nota: Se decidió realizar el ejercicio con threads y no con procesos debido a que mayoritariamente el servidor está haciendo operaciones de I/O por lo que el GIL no se vuelve un cuello de botella.*
 
 Se puede ejecutar con `make docker-compose-up`
+* **Para ejecutar el ejercicio es necesario extraer los archivos** de `.data/datasets.zip` en `.data` .
 
 * Commit `Ex8 handle clients concurrently` [ee607fa77b2fa47ea2c26576ef2faf0e4464d2cf](https://github.com/brunograssano/Distribuidos-TP0/commit/ee607fa77b2fa47ea2c26576ef2faf0e4464d2cf)
 
