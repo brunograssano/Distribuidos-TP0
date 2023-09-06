@@ -245,6 +245,7 @@ Del servidor al cliente:
 * `WIN,Cantidad de ganadores,Cantidad de ganadores * [Documento de ganador]` para enviarle al cliente los ganadores de su agencia. Por ejemplo `WIN,3,24807259,24807259,24807259` (A partir del ej 7 en adelante)
 
 En la siguiente imagen podemos ver un ejemplo de como transcurre la comunicación entre las dos partes
+
 ![Comunicacion cliente servidor](docs/flujo-comunicacion.png)
 
 * Primero se envían las apuestas y se va respondiendo con OK.
@@ -254,6 +255,7 @@ En la siguiente imagen podemos ver un ejemplo de como transcurre la comunicació
 ### Modelo
 
 El servidor tiene el siguiente modelo para separar las responsabilidades:
+
 ![Modelo servidor](docs/modelo-server.png)
 * `Server` tiene la responsabilidad de atender las nuevas conexiones. A partir del ejercicio 8 a cada conexión le crea un nuevo hilo que será joineado cuando se reciba otra conexión si es que termino su ejecución para liberar sus recursos
 * `LottoAgent` es el responsable del manejo de la lógica del negocio. Dependiendo del mensaje recibido, realiza una acción.
@@ -266,6 +268,7 @@ El servidor tiene el siguiente modelo para separar las responsabilidades:
 
 
 En el caso del cliente:
+
 ![Modelo cliente](docs/modelo-cliente.png)
 * `Client` maneja la lógica del negocio.
 * `Serializer` serializa y deserializa los mensajes.
