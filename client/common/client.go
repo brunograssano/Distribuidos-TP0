@@ -10,6 +10,8 @@ import (
 const FieldsPerLine = 5
 const CommaSeparator = ","
 const MaxWaitingTimeInSeconds = 900 // 15 mins
+const MinWaitingTimeInSeconds = 1
+const ExponentialBackoffRate = 2
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
@@ -68,7 +70,7 @@ func (c *Client) StartClientLoop() {
 // getWinnersOfLotto Asks the server for the winners of the lottery
 // If the server does not have the results it asks later following an exponential backoff
 func (c *Client) getWinnersOfLotto() {
-	for secondsUntilAskingForWinnersAgain := 1; ; secondsUntilAskingForWinnersAgain *= 2 {
+	for secondsUntilAskingForWinnersAgain := MinWaitingTimeInSeconds; ; secondsUntilAskingForWinnersAgain *= ExponentialBackoffRate {
 		select {
 		case <-c.stop:
 			return
@@ -87,7 +89,7 @@ func (c *Client) getWinnersOfLotto() {
 			log.Infof("action: consulta_ganadores | Asking again in %v seconds", secondsUntilAskingForWinnersAgain)
 			time.Sleep(time.Duration(secondsUntilAskingForWinnersAgain) * time.Second)
 			if secondsUntilAskingForWinnersAgain > MaxWaitingTimeInSeconds {
-				secondsUntilAskingForWinnersAgain = 1
+				secondsUntilAskingForWinnersAgain = MinWaitingTimeInSeconds
 			}
 			c.serializer.Connect()
 			continue

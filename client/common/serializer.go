@@ -6,6 +6,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const InitialMessageSize = 4
+
 // Serializer Middleware between business logic and communication logic.
 // Serializes and deserializes messages sent through the socket
 type Serializer struct {
@@ -53,7 +55,7 @@ func (s *Serializer) send(message string) error {
 		bytesToSendVal,
 		message,
 	)
-	bytesToSendArray := make([]byte, 4)
+	bytesToSendArray := make([]byte, InitialMessageSize)
 	binary.BigEndian.PutUint32(bytesToSendArray, uint32(bytesToSendVal))
 	err := s.conn.Send(bytesToSendArray)
 	if err != nil {
@@ -65,7 +67,7 @@ func (s *Serializer) send(message string) error {
 
 // RecvResponse Receives a message from the server
 func (s *Serializer) RecvResponse() (*ServerResponse, error) {
-	messageSizeBytes, err := s.conn.Recv(4)
+	messageSizeBytes, err := s.conn.Recv(InitialMessageSize)
 	if err != nil {
 		return nil, err
 	}

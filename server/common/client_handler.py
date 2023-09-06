@@ -31,7 +31,7 @@ class ClientHandler:
         encoded = message.encode('utf-8')
         encoded_length = len(encoded)
         bytes_to_send = int.to_bytes(
-            encoded_length, length=4, byteorder='big', signed=False)
+            encoded_length, length=INITIAL_MESSAGE_SIZE_IN_BYTES, byteorder='big', signed=False)
         logging.info(
             f"action: sending_message | bytes size: {encoded_length} | msg: '{message}'")
         self.client_stream.send(bytes_to_send)

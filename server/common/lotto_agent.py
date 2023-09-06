@@ -47,6 +47,9 @@ class LottoManager(threading.Thread):
             self.client.close()
 
     def handle_bets_message(self, message):
+        """
+        Stores the bets and sends the client an OK message if it was successful
+        """
         self.bets_lock.acquire()
         store_bets(message.bets)
         self.bets_lock.release()
@@ -54,6 +57,9 @@ class LottoManager(threading.Thread):
         self.client.send(ok_message())
 
     def handle_winners_message(self, agent):
+        """
+        If all clients finished loading bets it finds its winners
+        """
         finished = True
         self.finished_lock.acquire()
         for i in self.finished_lotteries:
