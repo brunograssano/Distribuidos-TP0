@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"strings"
 )
 
 // Serializer Middleware between business logic and communication logic.
@@ -26,8 +25,8 @@ func NewSerializer(ID string, ServerAddress string) *Serializer {
 }
 
 // SendBet Sends a bet message to the server.
-func (s *Serializer) SendBets(betsInBatch uint, bets string) error {
-	return s.send(fmt.Sprintf("BET,%d,%s,%s", betsInBatch, s.ID, strings.TrimSuffix(bets, ",")))
+func (s *Serializer) SendBets(betsBuilder *BetsMessageBuilder) error {
+	return s.send(betsBuilder.Build(s.ID))
 }
 
 // SendFinish Sends a finish message to the server

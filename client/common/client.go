@@ -4,7 +4,6 @@ import (
 	"bufio"
 	log "github.com/sirupsen/logrus"
 	"os"
-	"strings"
 	"time"
 )
 
@@ -109,8 +108,7 @@ func (c *Client) readAndSendBets() (bool, error) {
 	}
 	defer c.closeBetsFile(f)
 	scanner := bufio.NewScanner(f)
-	betsBuilder := strings.Builder{}
-	inBatch := uint(0)
+	betsBuilder := NewBetsMessageBuilder()
 
 	for scanner.Scan() {
 		select {
@@ -118,31 +116,25 @@ func (c *Client) readAndSendBets() (bool, error) {
 			return true, nil
 		default:
 		}
-		line := scanner.Text()
-		if inBatch < c.config.BatchSize {
-			if len(strings.Split(line, CommaSeparator)) != FieldsPerLine {
-				log.Errorf("action: read_file | result: fail | file_name: %v | error: wrong format, skipping line", c.config.BetsFile)
-				continue
+
+		if !betsBuilder.CanAddBet(c.config.BatchSize) {
+			err = c.sendBatch(betsBuilder)
+			if err != nil {
+				return false, err
 			}
-			betsBuilder.WriteString(line)
-			betsBuilder.WriteString(CommaSeparator)
-			inBatch++
-			continue
+			betsBuilder.Reset()
 		}
-		err = c.sendBatch(inBatch, betsBuilder)
-		if err != nil {
-			return false, err
-		}
-		betsBuilder.Reset()
-		inBatch = 0
+		line := scanner.Text()
+		betsBuilder.AddBet(line)
 	}
 	if err := scanner.Err(); err != nil {
 		log.Errorf("action: read_file | result: fail | file_name: %v | error: %v", c.config.BetsFile, err)
 		return false, err
 	}
-
-	err = c.sendBatch(inBatch, betsBuilder)
-	if inBatch != 0 && err != nil {
+	if betsBuilder.HasBets() {
+		err = c.sendBatch(betsBuilder)
+	}
+	if err != nil {
 		return false, err
 	}
 	err = c.serializer.SendFinish()
@@ -150,8 +142,8 @@ func (c *Client) readAndSendBets() (bool, error) {
 }
 
 // sendBatch Sends a batch of bets to the server and waits for the OK response
-func (c *Client) sendBatch(inBatch uint, betsBuilder strings.Builder) error {
-	err := c.serializer.SendBets(inBatch, betsBuilder.String())
+func (c *Client) sendBatch(betsBuilder *BetsMessageBuilder) error {
+	err := c.serializer.SendBets(betsBuilder)
 	if err != nil {
 		return err
 	}
